@@ -128,8 +128,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	}
 
 	// String table validity checks
-	if (stabstr_end <= stabstr || stabstr_end[-1] != 0)
-		return -1;
+	if (stabstr_end <= stabstr || stabstr_end[-1] != 0) return -1;
 
 	// Now we find the right stabs that define the function containing
 	// 'eip'.  First, we find the basic source file containing 'eip'.
@@ -140,8 +139,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	lfile = 0;
 	rfile = (stab_end - stabs) - 1;
 	stab_binsearch(stabs, &lfile, &rfile, N_SO, addr);
-	if (lfile == 0)
-		return -1;
+	if (lfile == 0) return -1;
 
 	// Search within that file's stabs for the function definition
 	// (N_FUN).
@@ -179,6 +177,9 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
 	// Your code here.
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if (lline <= rline)
+		info->eip_line = stabs[lline].n_desc;
 
 
 	// Search backwards from the line number for the relevant filename

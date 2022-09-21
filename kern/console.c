@@ -163,8 +163,7 @@ static void
 cga_putc(int c)
 {
 	// if no attribute given, then use black on white
-	if (!(c & ~0xFF))
-		c |= 0x0700;
+	if (!(c & ~0xFF)) c |= 0x0700;
 
 	switch (c & 0xff) {
 	case '\b':
@@ -191,7 +190,7 @@ cga_putc(int c)
 		break;
 	}
 
-	// What is the purpose of this?
+	// roll the whole screen down for a line
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 
