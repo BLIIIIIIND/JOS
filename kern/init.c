@@ -16,7 +16,8 @@ test_backtrace(int x)
 		test_backtrace(x-1);
 	else
 		mon_backtrace(0, 0, 0);
-	cprintf("leaving test_backtrace %d\n", x);
+	cprintf("%al%ae%aa%av%ai%an%ag test_backtrace %d\n",
+			0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, x);
 }
 
 void

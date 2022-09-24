@@ -124,13 +124,61 @@ Breakpoint 1, 0x00100025 in ?? ()
       ...
 ```
 
+后面有个 challenge ，要求实现字符颜色打印。可以给出现 % 打印符时多设计一种情况，通过参数传入，将颜色属性填到字符的高一个字节即可相应位置即可。我这里使用了 %a 组合来输入颜色：
+
+```C
+void vprintfmt(void (*putch)(int, void *), void *putdat, const char *fmt,
+               va_list ap) {
+  ...
+  while (1) {
+    while ((ch = *(unsigned char *)fmt++) != '%') {
+      if (ch == '\0') return;
+      if (color) {
+        ch |= color << 8;
+        color = 0;
+      }
+      putch(ch, putdat);
+    }
+    ...
+  reswitch:
+    switch (ch = *(unsigned char *)fmt++) {
+      ...
+      // color
+      case 'a':
+        color = va_arg(ap, int);
+        break;
+  ...
+}     
+```
+
+**注意：如果要打印颜色， 启动 qemu 时应使用 make qemu 而不是 make qemu-nox ，否则没有虚拟显示器。**
+
+将 test_backtrace 函数里的打印语句稍作修改如下：
+
+```C
+void
+test_backtrace(int x)
+{
+	...
+	cprintf("%al%ae%aa%av%ai%an%ag test_backtrace %d\n",
+			0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, x);
+}
+```
+
+效果如下：
+
+![image-20220924192457196](F:\study\6.828\lab1.assets\image-20220924192457196.png)
+
 ##### Exercise 9
 
 查看 kern/entry.S 的代码，可以看到在 relocated 标识后的代码有：
 
 ```assembly
+relocated:
+	...
 	# Set the stack pointer
 	movl	$(bootstacktop),%esp
+	...
 ```
 
 此处修改了栈指针寄存器（ esp ），平坦模型下内存寻址中的段地址统一为 0 ，因此修改 esp 即是修改栈顶位置，是内核初始化栈的行为。 x86 CPU 栈增长的方向为从高地址向低地址，因此 esp 指向的是栈的顶端。
@@ -189,14 +237,14 @@ f0100092:	c3                   	ret
 
 ##### Exercise 11
 
-由上一个实验可以得知， C 函数调用的时，栈帧的结构应该是这样的：
+由上一个实验可以得知， C 函数调用时，栈上的数据结构应该是这样的：
 
 ```
 high  |            |
   ^   |____________|
-  |   |    argN    |
-  |   |     ..     |
   |   |    arg0    |
+  |   |     ..     |
+  |   |    argN    |
   |   |  old %eip  |
   |   |  old %ebp  |  <--  %ebp  
   |   | local vars |
@@ -233,6 +281,10 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 这里要求进一步完善 mon_backtrace ，主要是通过查符号表来根据 eip 的值获取当前所处文件和函数。首先要完善 debuginfo_eip 函数，其中缺少了对 eip_line 数据的获取：
 
 ```C
+int
+debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
+{
+    ...
 	// Search within [lline, rline] for the line number stab.
 	// If found, set info->eip_line to the right line number.
 	// If not found, return -1.
@@ -245,6 +297,8 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
 	if (lline <= rline)
 		info->eip_line = stabs[lline].n_desc;
+    ...
+}
 ```
 
 最后， mon_backtrace 实现如下：

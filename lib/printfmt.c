@@ -73,12 +73,16 @@ void vprintfmt(void (*putch)(int, void *), void *putdat, const char *fmt,
   register const char *p;
   register int ch, err;
   unsigned long long num;
-  int base, lflag, width, precision, altflag;
+  int base, lflag, width, precision, altflag, color = 0;
   char padc;
 
   while (1) {
     while ((ch = *(unsigned char *)fmt++) != '%') {
       if (ch == '\0') return;
+      if (color) {
+        ch |= color << 8;
+        color = 0;
+      }
       putch(ch, putdat);
     }
 
@@ -209,6 +213,11 @@ void vprintfmt(void (*putch)(int, void *), void *putdat, const char *fmt,
       // escaped '%' character
       case '%':
         putch(ch, putdat);
+        break;
+
+      // color
+      case 'a':
+        color = va_arg(ap, int);
         break;
 
       // unrecognized escape sequence - just print it literally
